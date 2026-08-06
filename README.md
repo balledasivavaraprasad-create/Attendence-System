@@ -1,72 +1,118 @@
 # Attendance System using Face Recognition
 
-Real-time attendance logging system using OpenCV for face detection (YuNet) and DeepFace (ArcFace) for face recognition. The project captures face images via webcam, converts them into embeddings, matches live camera frames against stored embeddings, and logs attendance timestamps to a CSV file.
+A facial recognition attendance system built with OpenCV, DeepFace (ArcFace), Flask, and React.
+
+The application allows teachers to take attendance live via webcam or by uploading class images, managing sections, subjects, and student enrollments. Students can log in to view their subject-wise attendance percentages and historical logs. A CLI option is also available for standalone dataset collection and recognition.
+
+## Features
+
+- **Face Recognition**: Detects faces using YuNet (`face_detection_yunet_2023mar.onnx`) and extracts ArcFace embeddings using DeepFace.
+- **Web Application**:
+  - Flask backend REST API (`app.py`) running on port 5001.
+  - React frontend UI (`frontend/`) built with Vite.
+  - SQLite database storing users, sections, subjects, enrollments, sessions, and records.
+  - Role-based login (Teacher and Student).
+- **Teacher Dashboard**:
+  - Live webcam attendance taking or image upload.
+  - Section and subject creation.
+  - Student subject enrollment.
+  - Face image dataset uploader with automatic embedding updating.
+- **Student Dashboard**:
+  - Subject and section-level attendance percentage tracking.
+  - Historical attendance log timeline with status filters.
+- **CSV & Database Backup**: Logs attendance to SQLite database as well as `Attendence.csv`.
 
 ## Project Structure
 
 ```
 .
-├── main.py                   # Dataset collection (webcam face capture)
-├── generate_embeddings.py   # Extracts ArcFace embeddings and saves to pkl
-├── recognize.py             # Live face recognition and attendance tracking
-├── attendence.py            # CSV logging utility
-├── requirements.txt         # Required Python packages
-├── dataset/                 # Captured face images organized by person
-├── embeddings/              # Pickled embedding database (embeddings.pkl)
-└── models/                  # YuNet ONNX face detection model
+├── app.py                   # Flask REST API backend
+├── database.py              # SQLite database schema and connection setup
+├── seed_db.py               # Populates database with initial demo data
+├── main.py                  # Standalone CLI dataset collection script
+├── generate_embeddings.py   # Extracts ArcFace embeddings to embeddings/embeddings.pkl
+├── recognize.py             # Standalone CLI real-time recognition script
+├── attendence.py            # CSV attendance writer utility
+├── dataset/                 # Student face images organized by dataset folder name
+├── embeddings/              # Pickled embedding file (embeddings.pkl)
+├── models/                  # YuNet ONNX face detection model
+├── frontend/                # React Vite web interface
+│   ├── src/                 # React components and styling
+│   └── package.json
+└── requirements.txt         # Python package dependencies
 ```
 
-## Setup
+## Getting Started
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/balledasivavaraprasad-create/Attendence-System.git
-   cd Attendence-System
-   ```
+### 1. Requirements & Dependencies
 
-2. Create and activate a virtual environment (optional but recommended):
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
+Create a virtual environment and install the Python dependencies:
 
-3. Install required packages:
-   ```bash
-   pip install -r requirements.txt deepface
-   ```
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt deepface flask flask-cors werkzeug
+```
 
-## Usage
+In the `frontend` folder, install Node packages:
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 2. Database Initialization
+
+Seed the database with default accounts and demo data:
+
+```bash
+python seed_db.py
+```
+
+Demo Accounts:
+- **Teacher**: `teacher@school.com` / `password123`
+- **Student (Siva)**: `siva@school.com` / `password123`
+- **Student (Harsha)**: `harsha@school.com` / `password123`
+- **Student (Hrishi)**: `hrishi@school.com` / `password123`
+
+### 3. Running the Web Application
+
+Start the Flask backend server:
+
+```bash
+python app.py
+```
+The backend API runs on `http://localhost:5001`.
+
+In a separate terminal, start the React frontend dev server:
+
+```bash
+cd frontend
+npm run dev
+```
+Open `http://localhost:5173` (or the URL shown in terminal) in your browser.
+
+---
+
+## Standalone CLI Tools
+
+If you prefer using terminal commands without the web interface:
 
 ### 1. Collect Face Dataset
-Run `main.py` to capture face images for a new person. Enter the person's name when prompted.
 ```bash
 python main.py
 ```
-The script opens your webcam, detects faces using the YuNet model, and saves up to 30 face images in `dataset/<PersonName>/`. Press `q` to quit manually.
+Enter the person's dataset folder name when prompted. It captures face images via webcam and saves up to 30 photos in `dataset/<PersonName>/`.
 
-### 2. Generate Embeddings
-After collecting images, extract ArcFace embeddings:
+### 2. Generate ArcFace Embeddings
 ```bash
 python generate_embeddings.py
 ```
-This processes all images in `dataset/` and saves the feature vectors to `embeddings/embeddings.pkl`.
+Processes images in `dataset/` and generates `embeddings/embeddings.pkl`.
 
-### 3. Run Recognition & Attendance Tracking
-Start real-time recognition:
+### 3. Live Recognition
 ```bash
 python recognize.py
 ```
-When a registered person is detected with a match distance below the threshold, their attendance (Name, Date, Time) is written to `Attendence.csv`. Duplicate logs during the active session are automatically prevented.
-
-## Attendance Log Format
-
-The attendance records are saved in `Attendence.csv`:
-
-```csv
-Name,Date,Time
-Siva,2026-08-05,18:45:12
-```
-
-## Note on Model Path
-If you move the project directory, update the YuNet model path in `main.py` and `recognize.py` to match your local absolute or relative path:
-`models/face_detection_yunet_2023mar.onnx`
+Starts live recognition from webcam and appends timestamped attendance to `Attendence.csv`.
