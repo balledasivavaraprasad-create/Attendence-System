@@ -48,7 +48,7 @@ A modern, full-stack facial recognition attendance management system built with 
 ├── generate_embeddings.py   # Extracts ArcFace embeddings to embeddings/embeddings.pkl
 ├── recognize.py             # Standalone CLI real-time recognition script
 ├── attendence.py            # CSV attendance logging utility
-├── dataset/                 # Student face images organized by person subfolders
+├── dataset/                 # Student face images directory (local user dataset)
 ├── embeddings/              # ArcFace embedding vector pickle file (embeddings.pkl)
 ├── models/                  # YuNet ONNX face detection model weights
 ├── frontend/                # React (Vite) web application
@@ -59,34 +59,57 @@ A modern, full-stack facial recognition attendance management system built with 
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Step-by-Step Setup Guide
 
-### 1. Prerequisites
+Follow these steps to clone the repository and run the application locally on your system.
 
-- Python 3.9+
-- Node.js 18+ and `npm`
+### 1. Clone the Repository
 
-### 2. Backend Setup
+Open your terminal and clone the repository:
 
-Create a virtual environment and install Python dependencies:
+```bash
+git clone https://github.com/balledasivavaraprasad-create/Attendence-System.git
+cd Attendence-System
+```
+
+---
+
+### 2. Set Up Python Virtual Environment & Dependencies
+
+Create and activate a virtual environment, then install backend dependencies:
 
 ```bash
 # Create virtual environment
 python -m venv .venv
 
 # Activate virtual environment
-# On macOS/Linux:
+# On macOS / Linux:
 source .venv/bin/activate
-# On Windows:
+
+# On Windows (Command Prompt / PowerShell):
 # .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Initialize Database
+---
 
-Seed the SQLite database (`attendance_system.db`) with demo sections, subjects, and accounts:
+### 3. Install Frontend Dependencies
+
+Navigate into the `frontend` folder and install Node.js packages:
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+---
+
+### 4. Initialize Database
+
+Seed the SQLite database (`attendance_system.db`) with initial sections, subjects, and accounts:
 
 ```bash
 python seed_db.py
@@ -98,53 +121,70 @@ python seed_db.py
 - **Student (Harsha)**: `harsha@school.com` / `password123`
 - **Student (Hrishi)**: `hrishi@school.com` / `password123`
 
-### 4. Frontend Setup
+---
 
-In the `frontend` directory, install Node packages:
+### 5. Create Your Student Face Dataset & Generate Embeddings
 
+> 🔒 **Privacy Note**: Face photos are kept local to your machine and are excluded from Git for privacy.
+
+You need to populate student face images and generate ArcFace embedding vectors before running recognition.
+
+#### **Option A: Capture Face Photos via Webcam (CLI)**
+Run the dataset collection tool:
 ```bash
-cd frontend
-npm install
-cd ..
+python main.py
 ```
+Enter the student's dataset folder name (e.g. `Siva`) when prompted. The script will capture 30 face images from your webcam into `dataset/<PersonName>/`.
+
+#### **Option B: Upload via Web UI**
+Use the **Dataset Manager** tab in the Teacher Dashboard of the web application to upload face images.
+
+#### **Generate Feature Embeddings**:
+After adding or updating face photos in `dataset/`, run:
+```bash
+python generate_embeddings.py
+```
+This extracts ArcFace feature representations and creates `embeddings/embeddings.pkl`.
 
 ---
 
-## 💻 Running the Application
+## 💻 Running the Full-Stack Application
 
-1. **Start the FastAPI Backend Server**:
-   ```bash
-   python app.py
-   ```
-   *Backend API runs at `http://localhost:5001` (API documentation available at `http://localhost:5001/docs`).*
+To run the complete system, open **two separate terminal windows**:
 
-2. **Start the React Frontend Dev Server**:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-   *Open `http://localhost:5173` in your browser.*
+### **Terminal 1: Start FastAPI Backend**
+```bash
+# Ensure virtual environment is active
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+
+# Start backend server
+python app.py
+```
+*Backend API runs at `http://localhost:5001` (Interactive API docs at `http://localhost:5001/docs`).*
+
+### **Terminal 2: Start React Frontend**
+```bash
+# Navigate to frontend folder and start Vite
+cd frontend
+npm run dev
+```
+*Open **`http://localhost:5173`** in your web browser.*
 
 ---
 
 ## 🛠️ Standalone CLI Tools
 
-If you prefer terminal-based operation without the web interface:
+If you prefer operating directly from the command line without launching the web interface:
 
 1. **Capture Face Dataset**:
    ```bash
    python main.py
    ```
-   Captures face photos via webcam and saves them into `dataset/<PersonName>/`.
-
 2. **Generate ArcFace Embeddings**:
    ```bash
    python generate_embeddings.py
    ```
-   Processes images in `dataset/` and outputs `embeddings/embeddings.pkl`.
-
-3. **Real-time Live Recognition**:
+3. **Live Recognition & CSV Logging**:
    ```bash
    python recognize.py
    ```
-   Runs continuous webcam recognition and appends attendance records to `Attendence.csv`.

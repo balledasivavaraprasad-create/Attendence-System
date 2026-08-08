@@ -4,3 +4,7 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+
+# Ignore face dataset photos for privacy
+dataset/*
+!dataset/.gitkeep
