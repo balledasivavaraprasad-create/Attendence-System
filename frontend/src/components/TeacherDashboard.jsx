@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Users, BookOpen, PlusCircle, CheckCircle2, XCircle, AlertCircle, RefreshCw, Upload, Play, Shield, Layers, FileText } from 'lucide-react';
+import { Camera, Users, BookOpen, PlusCircle, CheckCircle2, XCircle, AlertCircle, RefreshCw, Upload, Play, Layers, FileText } from 'lucide-react';
 
 export default function TeacherDashboard({ user }) {
   const [activeTab, setActiveTab] = useState('take-attendance');
@@ -13,6 +13,12 @@ export default function TeacherDashboard({ user }) {
   const [useWebcam, setUseWebcam] = useState(true);
   const [cameraStream, setCameraStream] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isLiveSessionRunning, setIsLiveSessionRunning] = useState(false);
+  const [recognizedPresentStudents, setRecognizedPresentStudents] = useState([]);
+  const [latestMatchToast, setLatestMatchToast] = useState(null);
+  const liveIntervalRef = useRef(null);
+  const isProcessingFrameRef = useRef(false);
+
   const [capturedImage, setCapturedImage] = useState(null);
   const [attendanceResult, setAttendanceResult] = useState(null);
   const [scannerError, setScannerError] = useState('');
@@ -110,8 +116,116 @@ export default function TeacherDashboard({ user }) {
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
     return canvas.toDataURL('image/jpeg');
+  };
+
+  const startLiveSession = () => {
+    if (!selectedSection || !selectedSubject) {
+      setScannerError("Please select both a Section and a Subject.");
+      return;
+    }
+    setScannerError('');
+    setAttendanceResult(null);
+    setRecognizedPresentStudents([]);
+    setLatestMatchToast(null);
+    setIsLiveSessionRunning(true);
+  };
+
+  useEffect(() => {
+    if (isLiveSessionRunning && useWebcam) {
+      liveIntervalRef.current = setInterval(async () => {
+        if (isProcessingFrameRef.current) return;
+        const frameB64 = captureFrame();
+        if (!frameB64) return;
+
+        isProcessingFrameRef.current = true;
+        try {
+          const res = await fetch('http://localhost:5001/api/teacher/recognize-frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sectionId: parseInt(selectedSection),
+              subjectId: parseInt(selectedSubject),
+              image: frameB64
+            })
+          });
+          const data = await res.json();
+          if (data.recognizedStudents && data.recognizedStudents.length > 0) {
+            setRecognizedPresentStudents(prev => {
+              const updated = [...prev];
+              let newlyAdded = null;
+              data.recognizedStudents.forEach(st => {
+                if (!updated.some(u => u.studentId === st.studentId)) {
+                  updated.push(st);
+                  newlyAdded = st;
+                }
+              });
+              if (newlyAdded) {
+                setLatestMatchToast(newlyAdded);
+                setTimeout(() => setLatestMatchToast(null), 3000);
+              }
+              return updated;
+            });
+          }
+        } catch (err) {
+          console.error("Frame recognition error:", err);
+        } finally {
+          isProcessingFrameRef.current = false;
+        }
+      }, 500);
+    } else {
+      if (liveIntervalRef.current) {
+        clearInterval(liveIntervalRef.current);
+        liveIntervalRef.current = null;
+      }
+      isProcessingFrameRef.current = false;
+    }
+
+    return () => {
+      if (liveIntervalRef.current) {
+        clearInterval(liveIntervalRef.current);
+      }
+      isProcessingFrameRef.current = false;
+    };
+  }, [isLiveSessionRunning, useWebcam, selectedSection, selectedSubject]);
+
+  const stopAndFinalizeSession = async () => {
+    if (liveIntervalRef.current) {
+      clearInterval(liveIntervalRef.current);
+      liveIntervalRef.current = null;
+    }
+    setIsLiveSessionRunning(false);
+    setIsScanning(true);
+    setScannerError('');
+
+    const presentIds = recognizedPresentStudents.map(s => s.studentId);
+
+    try {
+      const res = await fetch('http://localhost:5001/api/teacher/finalize-attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionId: parseInt(selectedSection),
+          subjectId: parseInt(selectedSubject),
+          teacherId: user.id,
+          presentStudentIds: presentIds
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to finalize attendance");
+
+      setAttendanceResult(data);
+    } catch (err) {
+      setScannerError(err.message);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleProcessAttendance = async () => {
@@ -187,7 +301,7 @@ export default function TeacherDashboard({ user }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: newSubjectCode,
+Code: newSubjectCode,
           name: newSubjectName,
           sectionId: parseInt(newSubjectSectionId),
           teacherId: user.id
@@ -241,76 +355,79 @@ export default function TeacherDashboard({ user }) {
   return (
     <div className="container animate-fade-in">
       
+      {/* Metrics Row */}
       <div className="grid-cols-3" style={{ marginBottom: '24px' }}>
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ padding: '14px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }}>
-            <Users size={28} />
+        <div className="ui-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ padding: '10px', borderRadius: 'var(--radius-sm)', background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa' }}>
+            <Users size={22} />
           </div>
           <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Registered Students</p>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{allStudents.length}</h3>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', fontWeight: '500' }}>Registered Students</p>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--text-primary)' }}>{allStudents.length}</h3>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ padding: '14px', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee' }}>
-            <Layers size={28} />
+        <div className="ui-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ padding: '10px', borderRadius: 'var(--radius-sm)', background: 'rgba(14, 165, 233, 0.1)', color: '#38bdf8' }}>
+            <Layers size={22} />
           </div>
           <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Active Sections</p>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{sections.length}</h3>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', fontWeight: '500' }}>Active Sections</p>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--text-primary)' }}>{sections.length}</h3>
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ padding: '14px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-            <BookOpen size={28} />
+        <div className="ui-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ padding: '10px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
+            <BookOpen size={22} />
           </div>
           <div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Total Subjects</p>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{subjects.length}</h3>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', fontWeight: '500' }}>Total Subjects</p>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--text-primary)' }}>{subjects.length}</h3>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+      {/* Tabs Bar */}
+      <div className="tab-navigation">
         <button
           onClick={() => setActiveTab('take-attendance')}
-          className={activeTab === 'take-attendance' ? 'btn-primary' : 'btn-secondary'}
+          className={`tab-button ${activeTab === 'take-attendance' ? 'active' : ''}`}
         >
-          <Camera size={18} /> Take Attendance
+          <Camera size={16} /> Take Attendance
         </button>
         <button
           onClick={() => setActiveTab('classes-enrollment')}
-          className={activeTab === 'classes-enrollment' ? 'btn-primary' : 'btn-secondary'}
+          className={`tab-button ${activeTab === 'classes-enrollment' ? 'active' : ''}`}
         >
-          <PlusCircle size={18} /> Classes & Enrollments
+          <PlusCircle size={16} /> Sections & Courses
         </button>
         <button
           onClick={() => setActiveTab('dataset-manager')}
-          className={activeTab === 'dataset-manager' ? 'btn-primary' : 'btn-secondary'}
+          className={`tab-button ${activeTab === 'dataset-manager' ? 'active' : ''}`}
         >
-          <Upload size={18} /> Face Dataset Uploader
+          <Upload size={16} /> Dataset Manager
         </button>
       </div>
 
       {feedback && (
-        <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-sm)', marginBottom: '20px', color: '#6ee7b7' }}>
-          {feedback}
+        <div className="alert-box alert-success" style={{ marginBottom: '20px' }}>
+          <CheckCircle2 size={16} /> {feedback}
         </div>
       )}
 
+      {/* TAB 1: TAKE ATTENDANCE */}
       {activeTab === 'take-attendance' && (
-        <div className="grid-cols-2" style={{ gap: '24px' }}>
+        <div className="grid-cols-2" style={{ gap: '20px' }}>
           
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Camera size={20} color="#818cf8" /> Attendance Studio
+          <div className="ui-card" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Camera size={18} color="var(--accent-primary)" /> Live Attendance Studio
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Select Section</label>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>Section</label>
                 <select
                   value={selectedSection}
                   onChange={(e) => { setSelectedSection(e.target.value); setSelectedSubject(''); }}
@@ -321,7 +438,7 @@ export default function TeacherDashboard({ user }) {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Select Subject</label>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>Subject</label>
                 <select
                   value={selectedSubject}
                   onChange={(e) => setSelectedSubject(e.target.value)}
@@ -332,75 +449,163 @@ export default function TeacherDashboard({ user }) {
               </div>
             </div>
 
-            <div className="scanner-viewport" style={{ height: '280px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+            <div className="scanner-viewport" style={{ height: '280px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {useWebcam ? (
                 <>
-                  <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
                   <canvas ref={canvasRef} style={{ display: 'none' }} />
-                  {isScanning && <div className="scan-line" />}
+                  
+                  {isLiveSessionRunning && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      left: '12px',
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span className="pulse-dot" />
+                      Live Camera Active
+                    </div>
+                  )}
+
+                  {latestMatchToast && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '12px',
+                      left: '12px',
+                      right: '12px',
+                      background: 'rgba(16, 185, 129, 0.95)',
+                      color: '#ffffff',
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: '600',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: 'var(--shadow-md)'
+                    }}>
+                      <CheckCircle2 size={16} color="#ffffff" />
+                      Detected: {latestMatchToast.studentName}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                   {capturedImage ? (
                     <img src={capturedImage} alt="Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
                   ) : (
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Upload class photo to scan</p>
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Upload class photo to scan</p>
                   )}
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <button
                 onClick={() => setUseWebcam(!useWebcam)}
                 className="btn-secondary"
-                style={{ flex: 1, justifyContent: 'center' }}
+                disabled={isLiveSessionRunning}
+                style={{ flex: 1, justifyContent: 'center', fontSize: '0.8rem' }}
               >
-                {useWebcam ? 'Switch to Upload' : 'Switch to Camera'}
+                {useWebcam ? 'Use Photo Upload' : 'Use Webcam'}
               </button>
 
               {!useWebcam && (
-                <label className="btn-secondary" style={{ flex: 1, justifyContent: 'center', cursor: 'pointer' }}>
-                  Choose Image
+                <label className="btn-secondary" style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', fontSize: '0.8rem' }}>
+                  Select File
                   <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
                 </label>
               )}
             </div>
 
-            <button
-              onClick={handleProcessAttendance}
-              className="btn-primary"
-              disabled={isScanning}
-              style={{ width: '100%', marginTop: '14px', padding: '14px', justifyContent: 'center', fontSize: '1rem' }}
-            >
-              {isScanning ? <RefreshCw size={20} className="animate-spin" /> : <Play size={20} />}
-              {isScanning ? 'Recognizing Faces...' : 'Scan & Log Attendance'}
-            </button>
+            {useWebcam ? (
+              isLiveSessionRunning ? (
+                <button
+                  onClick={stopAndFinalizeSession}
+                  className="btn-danger"
+                  disabled={isScanning}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {isScanning ? <RefreshCw size={16} className="animate-spin" /> : <XCircle size={16} />}
+                  End Session & Finalize Roster
+                </button>
+              ) : (
+                <button
+                  onClick={startLiveSession}
+                  className="btn-primary"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  <Play size={16} />
+                  Start Live Attendance
+                </button>
+              )
+            ) : (
+              <button
+                onClick={handleProcessAttendance}
+                className="btn-primary"
+                disabled={isScanning}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                {isScanning ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
+                {isScanning ? 'Processing...' : 'Process Image Attendance'}
+              </button>
+            )}
+
+            {isLiveSessionRunning && (
+              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Recognized Students ({recognizedPresentStudents.length}):
+                  </span>
+                </div>
+                {recognizedPresentStudents.length === 0 ? (
+                  <p style={{ fontSize: '0.775rem', color: 'var(--text-tertiary)' }}>No students detected yet...</p>
+                ) : (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {recognizedPresentStudents.map(st => (
+                      <span key={st.studentId} className="badge badge-present" style={{ fontSize: '0.75rem' }}>
+                        <CheckCircle2 size={12} /> {st.studentName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {scannerError && (
-              <div style={{ marginTop: '16px', color: '#fca5a5', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertCircle size={16} /> {scannerError}
+              <div className="alert-box alert-error" style={{ marginTop: '14px' }}>
+                <AlertCircle size={15} /> {scannerError}
               </div>
             )}
 
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileText size={20} color="#34d399" /> Session Logs & Verification
+          {/* RIGHT: Results & Session Log */}
+          <div className="ui-card" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={18} color="var(--accent-primary)" /> Session Summary
             </h3>
 
             {attendanceResult ? (
               <div>
-                <div style={{ padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', marginBottom: '16px' }}>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Session logged for <strong>{attendanceResult.section} - {attendanceResult.subject}</strong> on {attendanceResult.date} at {attendanceResult.time}
+                <div style={{ padding: '12px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', marginBottom: '16px' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Recorded for <strong>{attendanceResult.section} — {attendanceResult.subject}</strong> on {attendanceResult.date} at {attendanceResult.time}
                   </p>
                   
                   {attendanceResult.recognizedMatches?.length > 0 && (
-                    <div style={{ marginTop: '10px' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#818cf8', fontWeight: '700', textTransform: 'uppercase' }}>
-                        Matched Embeddings:
+                    <div>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: '600', textTransform: 'uppercase' }}>
+                        Embeddings Detected:
                       </span>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                         {attendanceResult.recognizedMatches.map((m, idx) => (
@@ -413,22 +618,22 @@ export default function TeacherDashboard({ user }) {
                   )}
                 </div>
 
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '12px' }}>Student Roster Status:</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>Roster Attendance:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '300px', overflowY: 'auto' }}>
                   {attendanceResult.records.map((rec) => (
                     <div
                       key={rec.studentId}
                       style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
+                        justify: 'space-between',
                         alignItems: 'center',
-                        padding: '10px 14px',
-                        background: 'rgba(0,0,0,0.2)',
+                        padding: '9px 12px',
+                        background: 'var(--bg-app)',
                         borderRadius: 'var(--radius-sm)',
                         border: '1px solid var(--border-subtle)'
                       }}
                     >
-                      <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>{rec.studentName}</span>
+                      <span style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--text-primary)' }}>{rec.studentName}</span>
                       <span className={rec.status === 'PRESENT' ? 'badge badge-present' : 'badge badge-absent'}>
                         {rec.status === 'PRESENT' ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
                         {rec.status}
@@ -438,9 +643,9 @@ export default function TeacherDashboard({ user }) {
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-                <Camera size={48} color="rgba(255,255,255,0.15)" style={{ marginBottom: '12px' }} />
-                <p>Run a scan to log attendance for the selected Section & Subject.</p>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-tertiary)' }}>
+                <Camera size={36} color="var(--border-medium)" style={{ marginBottom: '8px' }} />
+                <p style={{ fontSize: '0.85rem' }}>Select Section & Subject and start live attendance to record student roster logs.</p>
               </div>
             )}
           </div>
@@ -448,12 +653,13 @@ export default function TeacherDashboard({ user }) {
         </div>
       )}
 
+      {/* TAB 2: SECTIONS & COURSES */}
       {activeTab === 'classes-enrollment' && (
-        <div className="grid-cols-2" style={{ gap: '24px' }}>
+        <div className="grid-cols-2" style={{ gap: '20px' }}>
           
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '16px' }}>1. Add Section</h3>
-            <form onSubmit={handleAddSection} style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+          <div className="ui-card" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>1. Add New Section</h3>
+            <form onSubmit={handleAddSection} style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
               <input
                 type="text"
                 required
@@ -462,55 +668,64 @@ export default function TeacherDashboard({ user }) {
                 onChange={(e) => setNewSectionName(e.target.value)}
                 className="input-field"
               />
-              <button type="submit" className="btn-primary">Add Section</button>
+              <button type="submit" className="btn-primary" style={{ shrink: 0 }}>Add Section</button>
             </form>
 
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '16px' }}>2. Add Subject to Section</h3>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>2. Create Subject</h3>
             <form onSubmit={handleAddSubject} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <select
-                value={newSubjectSectionId}
-                onChange={(e) => setNewSubjectSectionId(e.target.value)}
-                className="select-field"
-              >
-                {sections.map(sec => <option key={sec.id} value={sec.id}>{sec.name}</option>)}
-              </select>
-              <input
-                type="text"
-                required
-                placeholder="Subject Code (e.g. CS404)"
-                value={newSubjectCode}
-                onChange={(e) => setNewSubjectCode(e.target.value)}
-                className="input-field"
-              />
-              <input
-                type="text"
-                required
-                placeholder="Subject Name (e.g. Data Mining)"
-                value={newSubjectName}
-                onChange={(e) => setNewSubjectName(e.target.value)}
-                className="input-field"
-              />
+              <div>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Assigned Section</label>
+                <select
+                  value={newSubjectSectionId}
+                  onChange={(e) => setNewSubjectSectionId(e.target.value)}
+                  className="select-field"
+                >
+                  {sections.map(sec => <option key={sec.id} value={sec.id}>{sec.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Subject Code</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. CS404"
+                  value={newSubjectCode}
+                  onChange={(e) => setNewSubjectCode(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Subject Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Data Mining"
+                  value={newSubjectName}
+                  onChange={(e) => setNewSubjectName(e.target.value)}
+                  className="input-field"
+                />
+              </div>
               <button type="submit" className="btn-primary">Create Subject</button>
             </form>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '16px' }}>3. Enroll Student to Attendance List</h3>
+          <div className="ui-card" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>3. Enroll Student to Course</h3>
             <form onSubmit={handleEnroll} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select Student</label>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Student</label>
                 <select
                   value={enrollStudentId}
                   onChange={(e) => setEnrollStudentId(e.target.value)}
                   className="select-field"
                 >
-                  <option value="">-- Choose Student --</option>
+                  <option value="">-- Select Student --</option>
                   {allStudents.map(stu => <option key={stu.id} value={stu.id}>{stu.full_name} ({stu.email})</option>)}
                 </select>
               </div>
 
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select Section</label>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Section</label>
                 <select
                   value={enrollSectionId}
                   onChange={(e) => setEnrollSectionId(e.target.value)}
@@ -521,13 +736,13 @@ export default function TeacherDashboard({ user }) {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select Subject</label>
+                <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Subject</label>
                 <select
                   value={enrollSubjectId}
                   onChange={(e) => setEnrollSubjectId(e.target.value)}
                   className="select-field"
                 >
-                  <option value="">-- Choose Subject --</option>
+                  <option value="">-- Select Subject --</option>
                   {subjects.filter(s => s.section_id.toString() === enrollSectionId.toString()).map(sub => (
                     <option key={sub.id} value={sub.id}>{sub.code} - {sub.name}</option>
                   ))}
@@ -535,7 +750,7 @@ export default function TeacherDashboard({ user }) {
               </div>
 
               <button type="submit" className="btn-primary" style={{ marginTop: '8px' }}>
-                Enroll Student in Subject
+                Enroll Student
               </button>
             </form>
           </div>
@@ -543,22 +758,22 @@ export default function TeacherDashboard({ user }) {
         </div>
       )}
 
+      {/* TAB 3: DATASET MANAGER */}
       {activeTab === 'dataset-manager' && (
-        <div className="glass-panel" style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Upload size={20} color="#818cf8" /> Upload Student Face to Dataset
+        <div className="ui-card" style={{ padding: '24px', maxWidth: '540px', margin: '0 auto' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Upload size={18} color="var(--accent-primary)" /> Face Dataset Uploader
           </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-            New images uploaded here will be saved to <code>dataset/&lt;student_name&gt;/</code> and automatically update ArcFace embeddings.
-          </p>
 
           <form onSubmit={handleRegisterDataset} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Student Dataset Folder Name</label>
+              <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Student Dataset Folder Name
+              </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Siva, harsha, hrishi"
+                placeholder="e.g. Siva, Harsha, Hrishi"
                 value={datasetStudentName}
                 onChange={(e) => setDatasetStudentName(e.target.value)}
                 className="input-field"
@@ -566,7 +781,9 @@ export default function TeacherDashboard({ user }) {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Select Image File</label>
+              <label style={{ fontSize: '0.775rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Face Image File
+              </label>
               <input
                 type="file"
                 accept="image/*"
@@ -584,7 +801,7 @@ export default function TeacherDashboard({ user }) {
             </div>
 
             {datasetImage && (
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', background: 'var(--bg-app)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                 <img src={datasetImage} alt="Preview" style={{ height: '120px', borderRadius: 'var(--radius-sm)' }} />
               </div>
             )}

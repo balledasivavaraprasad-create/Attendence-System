@@ -1,60 +1,95 @@
-# Attendance System using Face Recognition
+# Smart Attendance System using Face Recognition
 
-A facial recognition attendance system built with OpenCV, DeepFace (ArcFace), Flask, and React.
+A modern, full-stack facial recognition attendance management system built with **FastAPI**, **DeepFace (ArcFace)**, **OpenCV (YuNet)**, and **React (Vite)**.
 
-The application allows teachers to take attendance live via webcam or by uploading class images, managing sections, subjects, and student enrollments. Students can log in to view their subject-wise attendance percentages and historical logs. A CLI option is also available for standalone dataset collection and recognition.
+The application allows teachers to conduct live continuous webcam attendance scanning or process uploaded class photos, create sections and subjects, and enroll students. Students can log in to view their subject-wise attendance percentages, threshold eligibility, and historical attendance logs. Standalone CLI tools are also included for dataset collection and offline recognition.
 
-## Features
+---
 
-- **Face Recognition**: Detects faces using YuNet (`face_detection_yunet_2023mar.onnx`) and extracts ArcFace embeddings using DeepFace.
-- **Web Application**:
-  - Flask backend REST API (`app.py`) running on port 5001.
-  - React frontend UI (`frontend/`) built with Vite.
-  - SQLite database storing users, sections, subjects, enrollments, sessions, and records.
-  - Role-based login (Teacher and Student).
-- **Teacher Dashboard**:
-  - Live webcam attendance taking or image upload.
-  - Section and subject creation.
-  - Student subject enrollment.
-  - Face image dataset uploader with automatic embedding updating.
-- **Student Dashboard**:
-  - Subject and section-level attendance percentage tracking.
-  - Historical attendance log timeline with status filters.
-- **CSV & Database Backup**: Logs attendance to SQLite database as well as `Attendence.csv`.
+## 🌟 Key Features
 
-## Project Structure
+- **Facial Recognition Engine**:
+  - Face detection powered by YuNet (`face_detection_yunet_2023mar.onnx`).
+  - High-accuracy face embeddings extracted via DeepFace (ArcFace model).
+  - Cosine distance matching with threshold tuning for accurate student identification.
+
+- **FastAPI REST Backend**:
+  - High-performance asynchronous REST API (`app.py`) running on `http://localhost:5001`.
+  - Continuous real-time frame processing endpoint (`/api/teacher/recognize-frame`).
+  - Automated SQLite database persistence with CSV backup (`Attendence.csv`).
+
+- **Human-Designed Modern UI**:
+  - Built with React & Vite featuring a sleek, professional dark SaaS aesthetic.
+  - Role-based authentication (Teacher & Student portals).
+  - **Teacher Dashboard**: Live camera attendance studio, real-time detection toasts, section/subject manager, student course enrollment, and dataset photo uploader.
+  - **Student Dashboard**: Overall attendance percentage tracker, exam eligibility indicators, subject breakdown cards with progress bars, and historical logs table.
+
+---
+
+## 📁 Project Structure
 
 ```
 .
-├── app.py                   # Flask REST API backend
-├── database.py              # SQLite database schema and connection setup
-├── seed_db.py               # Populates database with initial demo data
-├── main.py                  # Standalone CLI dataset collection script
+├── app.py                   # FastAPI REST API backend
+├── database.py              # SQLite database schema and connection helper
+├── seed_db.py               # Populates SQLite database with initial demo data
+├── main.py                  # Standalone CLI face dataset collection tool
 ├── generate_embeddings.py   # Extracts ArcFace embeddings to embeddings/embeddings.pkl
 ├── recognize.py             # Standalone CLI real-time recognition script
-├── attendence.py            # CSV attendance writer utility
-├── dataset/                 # Student face images organized by dataset folder name
-├── embeddings/              # Pickled embedding file (embeddings.pkl)
-├── models/                  # YuNet ONNX face detection model
-├── frontend/                # React Vite web interface
-│   ├── src/                 # React components and styling
+├── attendence.py            # CSV attendance logging utility
+├── dataset/                 # Student face images organized by person subfolders
+├── embeddings/              # ArcFace embedding vector pickle file (embeddings.pkl)
+├── models/                  # YuNet ONNX face detection model weights
+├── frontend/                # React (Vite) web application
+│   ├── src/                 # React components and modern CSS design system
 │   └── package.json
-└── requirements.txt         # Python package dependencies
+└── requirements.txt         # Python backend dependencies
 ```
 
-## Getting Started
+---
 
-### 1. Requirements & Dependencies
+## 🚀 Getting Started
 
-Create a virtual environment and install the Python dependencies:
+### 1. Prerequisites
+
+- Python 3.9+
+- Node.js 18+ and `npm`
+
+### 2. Backend Setup
+
+Create a virtual environment and install Python dependencies:
 
 ```bash
+# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt deepface flask flask-cors werkzeug
+
+# Activate virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+# .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-In the `frontend` folder, install Node packages:
+### 3. Initialize Database
+
+Seed the SQLite database (`attendance_system.db`) with demo sections, subjects, and accounts:
+
+```bash
+python seed_db.py
+```
+
+**Demo Accounts**:
+- **Teacher**: `teacher@school.com` / `password123`
+- **Student (Siva)**: `siva@school.com` / `password123`
+- **Student (Harsha)**: `harsha@school.com` / `password123`
+- **Student (Hrishi)**: `hrishi@school.com` / `password123`
+
+### 4. Frontend Setup
+
+In the `frontend` directory, install Node packages:
 
 ```bash
 cd frontend
@@ -62,57 +97,43 @@ npm install
 cd ..
 ```
 
-### 2. Database Initialization
+---
 
-Seed the database with default accounts and demo data:
+## 💻 Running the Application
 
-```bash
-python seed_db.py
-```
+1. **Start the FastAPI Backend Server**:
+   ```bash
+   python app.py
+   ```
+   *Backend API runs at `http://localhost:5001` (API documentation available at `http://localhost:5001/docs`).*
 
-Demo Accounts:
-- **Teacher**: `teacher@school.com` / `password123`
-- **Student (Siva)**: `siva@school.com` / `password123`
-- **Student (Harsha)**: `harsha@school.com` / `password123`
-- **Student (Hrishi)**: `hrishi@school.com` / `password123`
-
-### 3. Running the Web Application
-
-Start the Flask backend server:
-
-```bash
-python app.py
-```
-The backend API runs on `http://localhost:5001`.
-
-In a separate terminal, start the React frontend dev server:
-
-```bash
-cd frontend
-npm run dev
-```
-Open `http://localhost:5173` (or the URL shown in terminal) in your browser.
+2. **Start the React Frontend Dev Server**:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   *Open `http://localhost:5173` in your browser.*
 
 ---
 
-## Standalone CLI Tools
+## 🛠️ Standalone CLI Tools
 
-If you prefer using terminal commands without the web interface:
+If you prefer terminal-based operation without the web interface:
 
-### 1. Collect Face Dataset
-```bash
-python main.py
-```
-Enter the person's dataset folder name when prompted. It captures face images via webcam and saves up to 30 photos in `dataset/<PersonName>/`.
+1. **Capture Face Dataset**:
+   ```bash
+   python main.py
+   ```
+   Captures face photos via webcam and saves them into `dataset/<PersonName>/`.
 
-### 2. Generate ArcFace Embeddings
-```bash
-python generate_embeddings.py
-```
-Processes images in `dataset/` and generates `embeddings/embeddings.pkl`.
+2. **Generate ArcFace Embeddings**:
+   ```bash
+   python generate_embeddings.py
+   ```
+   Processes images in `dataset/` and outputs `embeddings/embeddings.pkl`.
 
-### 3. Live Recognition
-```bash
-python recognize.py
-```
-Starts live recognition from webcam and appends timestamped attendance to `Attendence.csv`.
+3. **Real-time Live Recognition**:
+   ```bash
+   python recognize.py
+   ```
+   Runs continuous webcam recognition and appends attendance records to `Attendence.csv`.

@@ -39,9 +39,9 @@ export default function Auth({ onLoginSuccess }) {
         setSuccess('Login successful! Redirecting...');
         setTimeout(() => {
           onLoginSuccess(data.user, data.token);
-        }, 500);
+        }, 400);
       } else {
-        setSuccess('Account created! Please log in with your credentials.');
+        setSuccess('Account created successfully! Please sign in.');
         setIsLogin(true);
       }
     } catch (err) {
@@ -57,24 +57,25 @@ export default function Auth({ onLoginSuccess }) {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '480px', marginTop: '40px' }}>
-      <div className="glass-panel animate-fade-in" style={{ padding: '32px' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: '800', marginBottom: '8px' }}>
-            {isLogin ? 'Sign In' : 'Create Account'}
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            {isLogin ? 'Access your attendance dashboard' : 'Join as a Teacher or Student'}
-          </p>
-        </div>
+    <div style={{ maxWidth: '420px', margin: '40px auto 0 auto', padding: '0 16px' }}>
+      
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
+          {isLogin ? 'Sign in to Smart Attendance' : 'Create your account'}
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          {isLogin ? 'Enter your credentials to access the dashboard' : 'Register as a teacher or student'}
+        </p>
+      </div>
+
+      <div className="ui-card animate-fade-in" style={{ padding: '24px' }}>
 
         {!isLogin && (
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '8px',
-            background: 'rgba(0,0,0,0.3)',
+            background: 'var(--bg-app)',
             padding: '4px',
             borderRadius: 'var(--radius-sm)',
             marginBottom: '20px'
@@ -82,53 +83,31 @@ export default function Auth({ onLoginSuccess }) {
             <button
               type="button"
               onClick={() => setRole('teacher')}
-              className={role === 'teacher' ? 'btn-primary' : 'btn-secondary'}
-              style={{ justifyContent: 'center', padding: '8px' }}
+              className={role === 'teacher' ? 'btn-primary' : 'btn-ghost'}
+              style={{ justifyContent: 'center', padding: '7px', fontSize: '0.8rem' }}
             >
-              <Shield size={16} /> Teacher
+              <Shield size={15} /> Teacher
             </button>
             <button
               type="button"
               onClick={() => setRole('student')}
-              className={role === 'student' ? 'btn-primary' : 'btn-secondary'}
-              style={{ justifyContent: 'center', padding: '8px' }}
+              className={role === 'student' ? 'btn-primary' : 'btn-ghost'}
+              style={{ justifyContent: 'center', padding: '7px', fontSize: '0.8rem' }}
             >
-              <GraduationCap size={16} /> Student
+              <GraduationCap size={15} /> Student
             </button>
           </div>
         )}
 
         {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#fca5a5',
-            padding: '12px',
-            borderRadius: 'var(--radius-sm)',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.85rem'
-          }}>
-            <AlertCircle size={18} /> {error}
+          <div className="alert-box alert-error" style={{ marginBottom: '16px' }}>
+            <AlertCircle size={16} /> {error}
           </div>
         )}
 
         {success && (
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            color: '#6ee7b7',
-            padding: '12px',
-            borderRadius: 'var(--radius-sm)',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.85rem'
-          }}>
-            <CheckCircle2 size={18} /> {success}
+          <div className="alert-box alert-success" style={{ marginBottom: '16px' }}>
+            <CheckCircle2 size={16} /> {success}
           </div>
         )}
 
@@ -136,9 +115,11 @@ export default function Auth({ onLoginSuccess }) {
           
           {!isLogin && (
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Full Name</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Full Name
+              </label>
               <div style={{ position: 'relative' }}>
-                <User size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+                <User size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
                 <input
                   type="text"
                   required
@@ -146,7 +127,7 @@ export default function Auth({ onLoginSuccess }) {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="input-field"
-                  style={{ paddingLeft: '40px' }}
+                  style={{ paddingLeft: '38px' }}
                 />
               </div>
             </div>
@@ -154,24 +135,28 @@ export default function Auth({ onLoginSuccess }) {
 
           {!isLogin && role === 'student' && (
             <div>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Student Image Dataset Folder Name</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Dataset Folder Name
+              </label>
               <input
                 type="text"
-                placeholder="e.g. Siva, harsha, hrishi"
+                placeholder="e.g. Siva, Harsha, Hrishi"
                 value={studentDatasetName}
                 onChange={(e) => setStudentDatasetName(e.target.value)}
                 className="input-field"
               />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-dark)', marginTop: '4px', display: 'block' }}>
-                Matches folder name inside dataset/
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px', display: 'block' }}>
+                Folder name in dataset/ for facial recognition matching
               </span>
             </div>
           )}
 
           <div>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Email Address</label>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Email Address
+            </label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+              <Mail size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
               <input
                 type="email"
                 required
@@ -179,15 +164,17 @@ export default function Auth({ onLoginSuccess }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '38px' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Password</label>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Password
+            </label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+              <Lock size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
               <input
                 type="password"
                 required
@@ -195,49 +182,50 @@ export default function Auth({ onLoginSuccess }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input-field"
-                style={{ paddingLeft: '40px' }}
+                style={{ paddingLeft: '38px' }}
               />
             </div>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', justifyContent: 'center', marginTop: '8px', padding: '12px' }}>
+          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', justifyContent: 'center', marginTop: '6px', padding: '10px' }}>
             {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
-            <ArrowRight size={18} />
+            <ArrowRight size={16} />
           </button>
         </form>
 
         {isLogin && (
-          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border-subtle)' }}>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '10px' }}>
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
+            <p style={{ fontSize: '0.725rem', color: 'var(--text-tertiary)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>
               Quick Demo Accounts
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <button onClick={() => handleQuickLogin('teacher@school.com')} className="btn-secondary" style={{ fontSize: '0.80rem', padding: '6px 8px' }}>
+              <button onClick={() => handleQuickLogin('teacher@school.com')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 8px', justifyContent: 'center' }}>
                 Teacher
               </button>
-              <button onClick={() => handleQuickLogin('siva@school.com')} className="btn-secondary" style={{ fontSize: '0.80rem', padding: '6px 8px' }}>
-                Siva (Student)
+              <button onClick={() => handleQuickLogin('siva@school.com')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 8px', justifyContent: 'center' }}>
+                Siva
               </button>
-              <button onClick={() => handleQuickLogin('harsha@school.com')} className="btn-secondary" style={{ fontSize: '0.80rem', padding: '6px 8px' }}>
-                Harsha (Student)
+              <button onClick={() => handleQuickLogin('harsha@school.com')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 8px', justifyContent: 'center' }}>
+                Harsha
               </button>
-              <button onClick={() => handleQuickLogin('hrishi@school.com')} className="btn-secondary" style={{ fontSize: '0.80rem', padding: '6px 8px' }}>
-                Hrishi (Student)
+              <button onClick={() => handleQuickLogin('hrishi@school.com')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 8px', justifyContent: 'center' }}>
+                Hrishi
               </button>
             </div>
           </div>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <button
-            onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }}
-            style={{ background: 'none', border: 'none', color: '#a5b4fc', fontSize: '0.75rem', cursor: 'pointer', textDecoration : 'underline'}}
-          >
-            {isLogin ? "Don't have an account? Sign up" : 'Already registered? Sign in'}
-          </button>
-        </div>
-
       </div>
+
+      <div style={{ textAlign: 'center', marginTop: '16px' }}>
+        <button
+          onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer' }}
+        >
+          {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+        </button>
+      </div>
+
     </div>
   );
 }
