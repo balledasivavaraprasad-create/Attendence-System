@@ -301,7 +301,7 @@ export default function TeacherDashboard({ user }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-Code: newSubjectCode,
+          code: newSubjectCode,
           name: newSubjectName,
           sectionId: parseInt(newSubjectSectionId),
           teacherId: user.id
@@ -355,7 +355,6 @@ Code: newSubjectCode,
   return (
     <div className="container animate-fade-in">
       
-      {/* Metrics Row */}
       <div className="grid-cols-3" style={{ marginBottom: '24px' }}>
         <div className="ui-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{ padding: '10px', borderRadius: 'var(--radius-sm)', background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa' }}>
@@ -388,7 +387,6 @@ Code: newSubjectCode,
         </div>
       </div>
 
-      {/* Tabs Bar */}
       <div className="tab-navigation">
         <button
           onClick={() => setActiveTab('take-attendance')}
@@ -416,7 +414,6 @@ Code: newSubjectCode,
         </div>
       )}
 
-      {/* TAB 1: TAKE ATTENDANCE */}
       {activeTab === 'take-attendance' && (
         <div className="grid-cols-2" style={{ gap: '20px' }}>
           
@@ -589,7 +586,6 @@ Code: newSubjectCode,
 
           </div>
 
-          {/* RIGHT: Results & Session Log */}
           <div className="ui-card" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <FileText size={18} color="var(--accent-primary)" /> Session Summary
@@ -653,7 +649,6 @@ Code: newSubjectCode,
         </div>
       )}
 
-      {/* TAB 2: SECTIONS & COURSES */}
       {activeTab === 'classes-enrollment' && (
         <div className="grid-cols-2" style={{ gap: '20px' }}>
           
@@ -758,7 +753,6 @@ Code: newSubjectCode,
         </div>
       )}
 
-      {/* TAB 3: DATASET MANAGER */}
       {activeTab === 'dataset-manager' && (
         <div className="ui-card" style={{ padding: '24px', maxWidth: '540px', margin: '0 auto' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>

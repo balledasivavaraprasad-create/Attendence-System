@@ -48,7 +48,6 @@ export default function StudentDashboard({ user }) {
   return (
     <div className="container animate-fade-in">
       
-      {/* Header Banner */}
       <div className="ui-card" style={{ padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -88,7 +87,6 @@ export default function StudentDashboard({ user }) {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid-cols-3" style={{ marginBottom: '24px' }}>
         <div className="ui-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{
@@ -138,7 +136,6 @@ export default function StudentDashboard({ user }) {
         </div>
       </div>
 
-      {/* Subject Breakdown */}
       <div style={{ marginBottom: '28px' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Percent size={18} color="var(--accent-primary)" /> Subject Attendance Breakdown
@@ -191,7 +188,6 @@ export default function StudentDashboard({ user }) {
         </div>
       </div>
 
-      {/* Logs Table */}
       <div className="ui-card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>

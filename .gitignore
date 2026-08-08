@@ -5,6 +5,5 @@ __pycache__/
 .vscode/
 .idea/
 
-# Ignore face dataset photos for privacy
 dataset/*
 !dataset/.gitkeep
