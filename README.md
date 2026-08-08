@@ -59,9 +59,9 @@ A modern, full-stack facial recognition attendance management system built with 
 
 ---
 
-## 🚀 Step-by-Step Setup Guide
+## 🚀 Step-by-Step Installation & Setup Guide
 
-Follow these steps to clone the repository and run the application locally on your system.
+Follow this guide to clone the repository, set up your local environment, generate your facial dataset, and run both frontend and backend servers.
 
 ### 1. Clone the Repository
 
@@ -74,12 +74,12 @@ cd Attendence-System
 
 ---
 
-### 2. Set Up Python Virtual Environment & Dependencies
+### 2. Set Up Python Virtual Environment & Install Dependencies
 
-Create and activate a virtual environment, then install backend dependencies:
+Create a virtual environment to isolate project packages, activate it, and install dependencies:
 
 ```bash
-# Create virtual environment
+# Create Python virtual environment
 python -m venv .venv
 
 # Activate virtual environment
@@ -89,15 +89,15 @@ source .venv/bin/activate
 # On Windows (Command Prompt / PowerShell):
 # .venv\Scripts\activate
 
-# Install dependencies
+# Install required Python packages
 pip install -r requirements.txt
 ```
 
 ---
 
-### 3. Install Frontend Dependencies
+### 3. Install Frontend Node Packages
 
-Navigate into the `frontend` folder and install Node.js packages:
+Navigate to the `frontend` folder and install Node.js dependencies:
 
 ```bash
 cd frontend
@@ -107,84 +107,86 @@ cd ..
 
 ---
 
-### 4. Initialize Database
+### 4. Initialize SQLite Database
 
-Seed the SQLite database (`attendance_system.db`) with initial sections, subjects, and accounts:
+Initialize and seed the database (`attendance_system.db`) with initial demo sections, subjects, and accounts:
 
 ```bash
 python seed_db.py
 ```
 
-**Demo Accounts**:
+**Pre-seeded Demo Accounts**:
 - **Teacher**: `teacher@school.com` / `password123`
-- **Student (Siva)**: `siva@school.com` / `password123`
-- **Student (Harsha)**: `harsha@school.com` / `password123`
-- **Student (Hrishi)**: `hrishi@school.com` / `password123`
+- **Student (Siva)**: `siva@school.com` / `password123` (Dataset folder: `Siva`)
+- **Student (Harsha)**: `harsha@school.com` / `password123` (Dataset folder: `harsha`)
+- **Student (Hrishi)**: `hrishi@school.com` / `password123` (Dataset folder: `hrishi`)
 
 ---
 
 ### 5. Create Your Student Face Dataset & Generate Embeddings
 
-> 🔒 **Privacy Note**: Face photos are kept local to your machine and are excluded from Git for privacy.
+> 🔒 **Privacy Note**: Facial dataset images (`dataset/`) and raw camera captures (`CapturedFaces/`) are kept local to your machine and are excluded from Git repository tracking for privacy.
 
-You need to populate student face images and generate ArcFace embedding vectors before running recognition.
+To perform facial recognition, you must collect student face images in `dataset/<StudentName>/` and extract ArcFace vector embeddings.
 
-#### **Option A: Capture Face Photos via Webcam (CLI)**
-Run the dataset collection tool:
-```bash
-python main.py
-```
-Enter the student's dataset folder name (e.g. `Siva`) when prompted. The script will capture 30 face images from your webcam into `dataset/<PersonName>/`.
+#### **Step 5A: Collect Student Face Images**
 
-#### **Option B: Upload via Web UI**
-Use the **Dataset Manager** tab in the Teacher Dashboard of the web application to upload face images.
+Choose one of two methods to build your dataset:
 
-#### **Generate Feature Embeddings**:
-After adding or updating face photos in `dataset/`, run:
+* **Method 1: Interactive CLI Collector (Recommended)**
+  Run the webcam capture script:
+  ```bash
+  python main.py
+  ```
+  1. Enter the student's dataset folder name when prompted (e.g., `Siva`).
+  2. The script opens your camera, detects your face using YuNet, and automatically captures 30 face images into `dataset/Siva/`.
+  3. Press `q` to quit at any time.
+
+* **Method 2: Web UI Dataset Uploader**
+  Log into the Web UI as a Teacher (`teacher@school.com`), navigate to the **Dataset Manager** tab, enter the student dataset name, and upload face image files directly.
+
+#### **Step 5B: Generate ArcFace Feature Embeddings**
+
+After collecting images for your students in `dataset/`, run the embedding extractor script:
+
 ```bash
 python generate_embeddings.py
 ```
-This extracts ArcFace feature representations and creates `embeddings/embeddings.pkl`.
+
+This script reads images inside `dataset/`, calculates ArcFace feature vectors using DeepFace, and saves them to `embeddings/embeddings.pkl`.
 
 ---
 
-## 💻 Running the Full-Stack Application
+## 💻 Running the Full-Stack Web Application
 
-To run the complete system, open **two separate terminal windows**:
+To run the application, open **two separate terminal windows** side-by-side:
 
-### **Terminal 1: Start FastAPI Backend**
+### **Terminal 1: Start FastAPI Backend API**
 ```bash
-# Ensure virtual environment is active
+# Make sure virtual environment is active
 source .venv/bin/activate   # On Windows: .venv\Scripts\activate
 
-# Start backend server
+# Start the FastAPI server
 python app.py
 ```
-*Backend API runs at `http://localhost:5001` (Interactive API docs at `http://localhost:5001/docs`).*
+*The REST backend runs on **`http://localhost:5001`**. (Swagger API docs available at `http://localhost:5001/docs`).*
 
 ### **Terminal 2: Start React Frontend**
 ```bash
-# Navigate to frontend folder and start Vite
+# Navigate to frontend and start Vite server
 cd frontend
 npm run dev
 ```
-*Open **`http://localhost:5173`** in your web browser.*
+*The React UI runs on **`http://localhost:5173`**.*
+
+Open **`http://localhost:5173`** in your browser to access the application.
 
 ---
 
-## 🛠️ Standalone CLI Tools
+## 🛠️ Standalone CLI Commands Summary
 
-If you prefer operating directly from the command line without launching the web interface:
+If you prefer terminal-only workflows without launching the web interface:
 
-1. **Capture Face Dataset**:
-   ```bash
-   python main.py
-   ```
-2. **Generate ArcFace Embeddings**:
-   ```bash
-   python generate_embeddings.py
-   ```
-3. **Live Recognition & CSV Logging**:
-   ```bash
-   python recognize.py
-   ```
+1. **Collect Face Dataset**: `python main.py`
+2. **Generate ArcFace Embeddings**: `python generate_embeddings.py`
+3. **Live Camera Recognition & CSV Logging**: `python recognize.py`

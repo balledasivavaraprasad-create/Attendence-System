@@ -7,3 +7,5 @@ __pycache__/
 
 dataset/*
 !dataset/.gitkeep
+CapturedFaces/
+!CapturedFaces/.gitkeep
