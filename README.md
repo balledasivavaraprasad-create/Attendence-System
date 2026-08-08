@@ -2,7 +2,18 @@
 
 A modern, full-stack facial recognition attendance management system built with **FastAPI**, **DeepFace (ArcFace)**, **OpenCV (YuNet)**, and **React (Vite)**.
 
-The application allows teachers to conduct live continuous webcam attendance scanning or process uploaded class photos, create sections and subjects, and enroll students. Students can log in to view their subject-wise attendance percentages, threshold eligibility, and historical attendance logs. Standalone CLI tools are also included for dataset collection and offline recognition.
+---
+
+## 📹 Project Demo & Video Preview
+
+> **Watch the Live Attendance Demo**  
+> *(Place your `demo.mp4` or `demo.gif` file in the `assets/` folder)*
+
+```html
+<div align="center">
+  <img src="assets/demo.gif" alt="Smart Attendance System Demo" width="100%" />
+</div>
+```
 
 ---
 
